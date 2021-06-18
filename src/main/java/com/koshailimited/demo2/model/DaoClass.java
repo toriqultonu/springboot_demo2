@@ -17,5 +17,10 @@ public class DaoClass {
         System.out.println(update);
     }
 
-    
+    //inserting data db
+    public void insertData(){
+        String q = "INSERT INTO users(NAME, CITY) VALUE ('Toriqul Islam','Bogura')";
+        int update = this.jdbcTemplate.update(q);
+        System.out.println(update+"row added");
+    }
 }
