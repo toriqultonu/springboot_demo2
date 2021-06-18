@@ -1,6 +1,12 @@
 package com.koshailimited.demo2.entities;
 
+import javax.persistence.Entity;
+import javax.persistence.Id;
+
+@Entity
 public class Courses {
+
+    @Id
     private long id;
     private String title;
     private String description;
