@@ -4,7 +4,7 @@ Content-Type: application/json
 
 {
     "name": "Toriqul Islam",
-    "email": "",
+    "email": "tts@gmail.com",
     "address": "Dhaka",
     "dateOfBirth": "2000-01-21",
     "registeredDate": "2025-10-01"
