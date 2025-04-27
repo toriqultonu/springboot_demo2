@@ -3,8 +3,8 @@ POST http://localhost:4000/patients
 Content-Type: application/json
 
 {
-    "name": "Toriqul Islam",
-    "email": "tts@mil.com",
+    "name": "Toriqul Islam with billing",
+    "email": "tts_with_billing@billing.com",
     "address": "Dhaka",
     "dateOfBirth": "2000-01-21",
     "registeredDate": "2025-10-01"
