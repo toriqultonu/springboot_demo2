@@ -5,6 +5,7 @@ import com.tts.patientservice.dto.PatientResponseDTO;
 import com.tts.patientservice.exception.EmailAlreadyExistsException;
 import com.tts.patientservice.exception.PatientNotFoundException;
 import com.tts.patientservice.grpc.BillingServiceGrpcClient;
+import com.tts.patientservice.kafka.KafkaProducer;
 import com.tts.patientservice.mapper.PatientMapper;
 import com.tts.patientservice.model.Patient;
 import com.tts.patientservice.repository.PatientRepository;
@@ -19,10 +20,12 @@ public class PatientService {
 
     private final PatientRepository patientRepository;
     private final BillingServiceGrpcClient billingServiceGrpcClient;
+    private final KafkaProducer kafkaProducer;
 
-    public PatientService(PatientRepository patientRepository, BillingServiceGrpcClient billingServiceGrpcClient) {
+    public PatientService(PatientRepository patientRepository, BillingServiceGrpcClient billingServiceGrpcClient, KafkaProducer kafkaProducer) {
         this.patientRepository = patientRepository;
         this.billingServiceGrpcClient = billingServiceGrpcClient;
+        this.kafkaProducer = kafkaProducer;
     }
 
     public List<PatientResponseDTO>getPatients(){
@@ -39,11 +42,13 @@ public class PatientService {
             throw new EmailAlreadyExistsException("Patient with email " + patientRequestDTO.getEmail() + " already exists");
         }
 
-        Patient patient = patientRepository.save(PatientMapper.toPatient(patientRequestDTO));
+        Patient newPatient = patientRepository.save(PatientMapper.toPatient(patientRequestDTO));
 
-        billingServiceGrpcClient.createBillingAccount(patient.getId().toString(), patient.getName(), patient.getEmail());
+        billingServiceGrpcClient.createBillingAccount(newPatient.getId().toString(), newPatient.getName(), newPatient.getEmail());
 
-        return PatientMapper.toPatientResponseDTO(patient);
+        kafkaProducer.sendEvent(newPatient);
+
+        return PatientMapper.toPatientResponseDTO(newPatient);
     }
 
     public PatientResponseDTO updatePatient(UUID id, PatientRequestDTO patientRequestDTO){
