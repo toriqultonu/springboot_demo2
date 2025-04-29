@@ -3,8 +3,8 @@ POST http://localhost:4000/patients
 Content-Type: application/json
 
 {
-    "name": "Toriqul Islam with billing grpc and kafka",
-    "email": "tts_with_billing_kafka@billing.com",
+    "name": "Toriqul Islam with billing grpc and kafka and analytics",
+    "email": "tts_with_billing_kafka_analytics@billing.com",
     "address": "Dhaka",
     "dateOfBirth": "2000-01-21",
     "registeredDate": "2025-10-01"
