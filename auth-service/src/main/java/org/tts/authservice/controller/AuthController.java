@@ -8,11 +8,18 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.tts.authservice.dto.LoginRequestDTO;
 import org.tts.authservice.dto.LoginResponseDTO;
+import org.tts.authservice.service.AuthService;
 
 import java.util.Optional;
 
 @RestController
 public class AuthController {
+
+    private final AuthService authService;
+
+    public AuthController(AuthService authService) {
+        this.authService = authService;
+    }
 
     @Operation(summary = "Generate toke  on user login")
     @PostMapping("/login")
