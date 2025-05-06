@@ -4,7 +4,9 @@ Content-Type: application/json
 
 {
   "email": "testuser@test.com",
-  "password": "$2b$12$7hoRZfJrRKD2nIm2vHLs7OBETy.LWenXXMLKf99W8M4PUwO6KB7fu"
+  "password": "password123"
 }
+
+> {% client.global.set("token", response.body.token) %}
 
 ###
