@@ -1,7 +1,6 @@
 package com.tts.patientservice.dto;
 
 public class PatientResponseDTO {
-
     private String id;
     private String name;
     private String email;
@@ -47,4 +46,6 @@ public class PatientResponseDTO {
     public void setDateOfBirth(String dateOfBirth) {
         this.dateOfBirth = dateOfBirth;
     }
+
+
 }
