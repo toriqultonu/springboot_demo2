@@ -2,6 +2,9 @@ package com.tts.stack;
 
 
 
+
+
+import software.amazon.awscdk.services.ecs.*;
 import software.amazon.awscdk.*;
 import software.amazon.awscdk.services.ec2.*;
 import software.amazon.awscdk.services.ec2.InstanceType;
@@ -15,6 +18,7 @@ import java.util.stream.Collectors;
 public class LocalStack extends Stack {
 
     private final Vpc vpc;
+    private final Cluster ecsCluster;
 
     public LocalStack(final App scope, final String id, final StackProps props){
          super(scope, id, props);
@@ -30,6 +34,8 @@ public class LocalStack extends Stack {
          CfnHealthCheck patientDbHealthCheck = createDbHealthCheck(patientServiceDb, "PatientServiceDBHealthCheck");
 
          CfnCluster mskCluster = createMskCluster();
+
+         this.ecsCluster = createEcsCluster();
     }
 
     private Vpc createVpc(){
@@ -71,6 +77,15 @@ public class LocalStack extends Stack {
                                 ISubnet::getSubnetId)
                                 .collect(Collectors.toList()))
                         .brokerAzDistribution("DEFULT").build())
+                .build();
+    }
+
+    private Cluster createEcsCluster(){
+        return Cluster.Builder.create(this, "PatientManagementCluster")
+                .vpc(vpc)
+                .defaultCloudMapNamespace(CloudMapNamespaceOptions.builder()
+                        .name("patient-management.local")
+                        .build())
                 .build();
     }
 
