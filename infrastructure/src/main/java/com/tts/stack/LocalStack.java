@@ -9,6 +9,7 @@ import software.amazon.awscdk.*;
 import software.amazon.awscdk.services.ec2.*;
 import software.amazon.awscdk.services.ec2.InstanceType;
 import software.amazon.awscdk.services.ecs.Protocol;
+import software.amazon.awscdk.services.ecs.patterns.ApplicationLoadBalancedFargateService;
 import software.amazon.awscdk.services.logs.LogGroup;
 import software.amazon.awscdk.services.logs.RetentionDays;
 import software.amazon.awscdk.services.msk.CfnCluster;
@@ -42,6 +43,32 @@ public class LocalStack extends Stack {
          CfnCluster mskCluster = createMskCluster();
 
          this.ecsCluster = createEcsCluster();
+
+         FargateService authService = createFargateService("AuthService", "auth-service",
+                 List.of(4005), authServiceDb, Map.of("JWT_SECRET", "9028435891a8d31cd6842600ac452881b9cf6eed29c2d624bcad74c3be6334fdde9da92d1b16628dd050f05b228c6fc1e117f3a9a17cfc10b312fff9660e2793d6180df1c73f13dda9cdda1ac78c786a1e4d9d56011288e3be2bc7ece45b59d8e7ac8c6d8f7f26dd1fdbf6be780f472464224b509ee53262f93feae0ee781989addea11f85649119b399e13602c79c6de035b1569d498be1e8fc1c0e4985b1a1fc759bb5c33a79ede30caeaca128d431dd94a6ad252230ac8fd94773bbb1158f6df8925239c084301d1d0bbbbaa9729aeaf51a83368887f03fcb6ad6afa13030cb309b869189ad2e8ebea6d0899c0c6ec8ec598d85b4eb14f858cdeb57b4c71a"));
+
+         authService.getNode().addDependency(authDbHealthCheck);
+         authService.getNode().addDependency(authServiceDb);
+
+         FargateService biddenService = createFargateService("BillingService", "billing-service",
+                 List.of(4001, 9001), null, null);
+
+         FargateService analyticsService = createFargateService("AnalyticsService", "analytics-service",
+                 List.of(4002), null, null);
+
+         analyticsService.getNode().addDependency(mskCluster);
+
+         FargateService patientService = createFargateService("PatientService", "patient-service",
+                 List.of(4000), patientServiceDb, Map.of("BILLING_SERVICE_ADDRESS", "host.docker.internal",
+                         "BILLING_SERVICE_GRPC_PORT", "9001"));
+
+         patientService.getNode().addDependency(patientServiceDb);
+         patientService.getNode().addDependency(patientDbHealthCheck);
+         patientService.getNode().addDependency(biddenService);
+         patientService.getNode().addDependency(mskCluster);
+
+         createApiGateWayService();
+
     }
 
     private Vpc createVpc(){
@@ -116,6 +143,7 @@ public class LocalStack extends Stack {
                                         .removalPolicy(RemovalPolicy.DESTROY)
                                         .retention(RetentionDays.ONE_DAY)
                                         .build())
+                                .streamPrefix(imageName )
                         .build()));
 
         Map<String, String> envVars = new HashMap<>();
@@ -146,6 +174,44 @@ public class LocalStack extends Stack {
                 .taskDefinition(taskDefinition)
                 .assignPublicIp(false)
                 .serviceName(imageName)
+                .build();
+    }
+
+    private void createApiGateWayService(){
+          FargateTaskDefinition taskDefinition =
+                  FargateTaskDefinition.Builder.create(this, "APIGateWayTaskDefinition")
+                          .cpu(256)
+                          .memoryLimitMiB(512)
+                          .build();
+
+        ContainerDefinitionOptions containerOptions = ContainerDefinitionOptions.builder()
+                .image(ContainerImage.fromRegistry("api-gateway"))
+                .environment(Map.of("SPRING_PROFILES_ACTIVE", "prod",
+                        "AUTH_SERVICE_URL", "http://host.docker.internal:4005"))
+                .portMappings(List.of(4004).stream().map(port -> PortMapping.builder()
+                        .containerPort(port)
+                        .hostPort(port)
+                        .protocol(Protocol.TCP)
+                        .build()).toList())
+                .logging(LogDriver.awsLogs(AwsLogDriverProps.builder()
+                        .logGroup(LogGroup.Builder.create(this, "ApiGatewayLogGroup")
+                                .logGroupName("/ecs/api-gateway")
+                                .removalPolicy(RemovalPolicy.DESTROY)
+                                .retention(RetentionDays.ONE_DAY)
+                                .build())
+                        .streamPrefix("api-gateway")
+                        .build()))
+                .build();
+
+        taskDefinition.addContainer("APIGateWayContainer", containerOptions);
+
+        ApplicationLoadBalancedFargateService apiGateway
+                = ApplicationLoadBalancedFargateService.Builder.create(this, "APIGateWayService")
+                .cluster(ecsCluster)
+                .serviceName("api-gateway")
+                .taskDefinition(taskDefinition)
+                .desiredCount(1)
+                .healthCheckGracePeriod(Duration.seconds(60))
                 .build();
     }
 
