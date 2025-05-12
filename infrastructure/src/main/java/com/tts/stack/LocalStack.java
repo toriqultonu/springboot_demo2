@@ -1,9 +1,6 @@
 package com.tts.stack;
 
 
-
-
-
 import software.amazon.awscdk.services.ecs.*;
 import software.amazon.awscdk.*;
 import software.amazon.awscdk.services.ec2.*;
@@ -50,7 +47,7 @@ public class LocalStack extends Stack {
          authService.getNode().addDependency(authDbHealthCheck);
          authService.getNode().addDependency(authServiceDb);
 
-         FargateService biddenService = createFargateService("BillingService", "billing-service",
+         FargateService billingService = createFargateService("BillingService", "billing-service",
                  List.of(4001, 9001), null, null);
 
          FargateService analyticsService = createFargateService("AnalyticsService", "analytics-service",
@@ -64,7 +61,7 @@ public class LocalStack extends Stack {
 
          patientService.getNode().addDependency(patientServiceDb);
          patientService.getNode().addDependency(patientDbHealthCheck);
-         patientService.getNode().addDependency(biddenService);
+         patientService.getNode().addDependency(billingService);
          patientService.getNode().addDependency(mskCluster);
 
          createApiGateWayService();
